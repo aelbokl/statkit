@@ -14,9 +14,7 @@ A Python package for streamlined data cleaning, statistical analysis, and visual
 
 ## Installation
 
-```bash
-pip install statkit  # Note: Package name availability may vary
-```
+Copy the repo to your local environment.
 
 ## Dependencies
 
