@@ -548,8 +548,8 @@ def compare_dep(
                     print()
                 index += 1
 
-        # If all groups are normally distributed, use paired t-test (dependent, related)
-        if all_normal:
+        # If all groups are normally distributed and we have 2 groups only, use paired t-test (dependent, related)
+        if all_normal and len(groups) == 2:
             test_name = "Paired t-test"
             test_statistic_sign = "t"
             line1 = "All data is normally distributed."
@@ -567,6 +567,17 @@ def compare_dep(
 
             effect_size["label"] = "Cohen's d"
             effect_size["value"] = d
+
+        # If all groups are normally distributed, and we have more than 2 groups/group, use repeated measures ANOVA
+        # elif all_normal and len(groups) > 2:
+        #     test_name = "Repeated Measures ANOVA"
+        #     test_statistic_sign = "F"
+        #     line1 = "Using repeated measures ANOVA because there are more than 2 groups."
+
+        #     # Use repeated measures ANOVA to compare all group
+        #     statistic, p_value = stats.f_oneway(*groups)
+        #     statistic = round(statistic, 3)
+        #     p_value = round(p_value
 
         # If all group are not normally distributed, use Wilcoxon signed-rank test
         elif not all_normal:
