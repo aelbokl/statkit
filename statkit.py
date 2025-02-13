@@ -6,11 +6,13 @@
 import pandas as pd
 import numpy as np
 import scipy.stats as stats
+import pingouin as pg
+from statsmodels.stats.multicomp import pairwise_tukeyhsd
+from scikit_posthocs import posthoc_dunn as dunn
 import seaborn as sns
 import matplotlib.pyplot as plt
 
 sns.set()
-
 
 # Drop columns more conveniently
 def drop_columns(
@@ -135,7 +137,7 @@ def compare_ind(
     # Note: this function does not handle the independent variable (grouping variable). It assumes that the series are already grouped.
     # groups: a list of pandas series/columns to be compared
     # group_labels: a list of labels for the groups. If not provided, the group names + group number will be used as labels. The list of labels has to correspond to the list of groups.
-    # forced_test: if provided, the function will use the test provided instead of determining it automatically. The test has to be a string and has to be one of the following: "ttest", "anova", "mannwhitney", "kruskalwallis", "chisquare", 'fisherexact'
+    # forced_test: if provided, the function will use the test provided instead of determining it automatically. The test has to be a string and has to be one of the following: "ttest", "one-way ANOVA", "mannwhitney", "kruskalwallis", "chisquare", 'fisherexact'
     # alpha: the alpha value to be used for the test. Default is 0.05
     # categorical_limit: the number of unique values in a series/column that determines whether the data is continuous or categorical. If it is below this limit, data will be treated as categorical. Default is 20.
 
@@ -210,16 +212,16 @@ def compare_ind(
                     print("Data is not normally distributed.")
                     all_normal = False
 
-            # Plot QQ
-            print()
-            plt.figure(figsize=(4, 3))
-            stats.probplot(group, dist="norm", plot=plt)
-            plt.title("Normal Q-Q Plot for " + group_labels[index])
-            plt.show()
-            print("-------------------------------------------------")
-            index += 1
-            if index < len(groups):
-                print()
+            # # Plot QQ
+            # print()
+            # plt.figure(figsize=(4, 3))
+            # stats.probplot(group, dist="norm", plot=plt)
+            # plt.title("Normal Q-Q for " + group_labels[index])
+            # plt.show()
+            # print("-------------------------------------------------")
+            # index += 1
+            # if index < len(groups):
+            #     print()
 
         # Print mean and standard deviation for each group if all groups are normally distributed
         print_title("Central Tendency")
@@ -276,20 +278,43 @@ def compare_ind(
             cohen_d = (np.mean(groups[0]) - np.mean(groups[1])) / pooled_std
 
             effect_size["label"] = "Cohen's d"
-            effect_size["value"] = cohen_d
+            effect_size["value"] = cohen_d.round(3) 
 
-        # If all groups are normally distributed, and we have more than 2 groups/group, use ANOVA
+        # If all groups are normally distributed, and we have more than 2 groups/group, use one-way ANOVA
         elif all_normal and len(groups) > 2:
-            test_name = "ANOVA"
+            test_name = "one-way ANOVA"
             test_statistic_sign = "F"
-            line1 = "Using ANOVA because there are more than 2 groups."
+            line1 = "Using one-way ANOVA because there are more than 2 groups."
 
-            # Use ANOVA to compare all group
+            # Use one-way ANOVA to compare all group
             statistic, p_value = stats.f_oneway(*groups)
             statistic = round(statistic, 3)
             p_value = round(p_value, 3)
 
-        # If all group are not normally distributed, and we have 2 groups/group, use Mann-Whitney U test
+            #MAHA# # Compute the effect size for one-way ANOVA (eta squared (η²))
+            N = sum(len(group) for group in groups)  # Total sample size
+            grand_mean = np.mean(np.concatenate(groups))  # Overall mean
+            # Compute SST (Between-Group Sum of Squares)
+            sst = sum([len(group) * (np.mean(group) - grand_mean) ** 2 for group in groups])
+            # Compute SSW (Within-Group Sum of Squares) - Fixed
+            ssw = sum([np.sum((group - np.mean(group)) ** 2) for group in groups])
+            # Compute eta squared
+            eta_squared = sst / (sst + ssw)
+            effect_size["label"] = "eta squared (η²)"
+            effect_size["value"] = eta_squared.round(3) 
+            # print(f"ANOVA F-statistic: {F_stat}")
+            # print(f"Eta Squared (η²): {eta_squared:.3f}")
+
+     #MAHA# #perform post-hoc test after one-way ANOVA if p-value is significant
+            if p_value < alpha:
+                print("Post-hoc test is needed.")
+                # Use Tukey's HSD test for post-hoc analysis
+                tukey_results = pairwise_tukeyhsd (endog=df['value'], groups=df['group'], alpha=alpha)
+                print(tukey_results)
+            else:
+                    print("No significant differences found.")
+
+        # If all group are not normally distributed, and we have 2 groups, use Mann-Whitney U test
         elif not all_normal and len(groups) == 2:
             test_name = "Mann-Whitney U"
             test_statistic_sign = "Statistic"
@@ -299,20 +324,30 @@ def compare_ind(
             statistic, p_value = stats.mannwhitneyu(groups[0], groups[1])
             p_value = round(p_value, 3)
 
-            # Compute the effect size (Cohen's U3)
+# # Compute the effect size (Cohen's U3) #N.B. #Cohen’s U₃ gives a percentile-based interpretation of effect size based on cohen's d#
+# n1 = len(groups[0])
+# n2 = len(groups[1])
+
+# R1 = (n1 * (n1 + n2 + 1)) / 2
+# R2 = n1 * n2 - R1
+
+# u3 = (R1 - R2) / n1
+# u3 = (statistic - (n1 * (n1 + 1)) / 2) / (n1 * n2)
+
+# effect_size["label"] = "Cohen's U3"
+# effect_size["value"] = u3
+
+            #MAHA# #Compute the effect size for Mann-Whitney U test (Cliff’s Delta (δ))
+            # delta = (2 * U) / (n1 * n2) - 1 
+            # where U is the Mann-Whitney U statistic, n1 is the number of observations in the first group, and n2 is the number of observations in the second group.
             n1 = len(groups[0])
             n2 = len(groups[1])
-
-            R1 = (n1 * (n1 + n2 + 1)) / 2
-            R2 = n1 * n2 - R1
-
-            u3 = (R1 - R2) / n1
-            # u3 = (statistic - (n1 * (n1 + 1)) / 2) / (n1 * n2)
-
-            effect_size["label"] = "Cohen's U3"
-            effect_size["value"] = u3
-
-        # If all group are not normally distributed, and we have more than 2 groups/group, use Kruskal-Wallis H test
+            U = statistic
+            delta = (2 * U) / (n1 * n2) - 1
+            effect_size["label"] = "Cliff's Delta (δ)"
+            effect_size["value"] = delta.round(3)
+            
+        # If all group are not normally distributed, and we have more than 2 groups, use Kruskal-Wallis H test
         elif not all_normal and len(groups) > 2:
             test_name = "Kruskal-Wallis H test"
             test_statistic_sign = "Statistic"
@@ -323,6 +358,27 @@ def compare_ind(
             statistic = round(statistic, 3)
             p_value = round(p_value, 3)
 
+            #MAHA# # Compute the effect size for Kruskal-Wallis H (Epsilon Squared (ε²))
+            N = sum(len(group) for group in groups)  # Total number of observations
+            k = len(groups)  # Number of groups
+            H_stat = statistic
+            epsilon_squared = (H_stat - k + 1) / (N - k)
+            effect_size["label"] = "(Epsilon Squared (ε²)"
+            effect_size["value"] = epsilon_squared.round(3)
+
+            # print(f"Kruskal-Wallis H: {H_stat}")
+            # print(f"Epsilon Squared (ε²): {epsilon_squared:.3f}")
+
+    #MAHA#  #perform post-hoc test after Kruskal-Wallis H test if p-value is significant
+            if p_value < alpha:
+                print("Post-hoc test is needed.")
+                # Use Dunn's test for post-hoc analysis
+                dunn_results = dunn(df['value'], df['group'], p_adjust='bonferroni')
+                print(dunn_results)
+            else:
+                print("No significant differences found.")
+
+                
     #### IF DATA IS CATEGORICAL ####
     if not continuous:
         # Check Chi-squared assumptions to determine which test to use: Chi-squared or Fisher's exact test.
@@ -374,6 +430,22 @@ def compare_ind(
             statistic = round(statistic, 3)
             p_value = round(p_value, 3)
 
+            #MAHA# # Compute the effect size for Chi-squared (Cramer's V)
+            n = contingency_table.sum().sum()  # Total sample size
+            r, k = contingency_table.shape  # Rows and columns
+            # Prevent division by zero
+            if min(r, k) == 1:
+                V = 0  # Cramer's V is undefined for 1x2 or 2x1 tables
+            else:
+                chi2_stat = statistic
+                V = np.sqrt(statistic/ (n * (min(r, k) - 1)))
+                effect_size["label"] = "Cramer's V"
+                effect_size["value"] = V.round(3)
+            # # Store the effect size
+            # effect_size = {"label": "Cramer's V", "value": V}
+            # print(f"Chi-square statistic: {chi2_stat:.3f}")
+            # print(f"Cramer's V: {V:.3f}")
+            
         else:
             print("Chi-squared assumptions are not met")
 
@@ -388,6 +460,11 @@ def compare_ind(
                 test_name = "Fisher's exact test"
                 test_statistic_sign = "Odd's ratio"
 
+                #compute the effect size for Fisher's exact (Odds Ratio)
+                OR = statistic
+                effect_size["label"] = "Odds Ratio"
+                effect_size["value"] = OR
+                
             else:
                 print(
                     "The contingency table is not 2x2. Cannot perform Fisher's exact test"
@@ -400,6 +477,31 @@ def compare_ind(
                 statistic = round(statistic, 3)
                 p_value = round(p_value, 3)
 
+                # # Compute the effect size (Cramer's V)
+                n = contingency_table.sum().sum()  # Total sample size
+                r, k = contingency_table.shape  # Rows and columns
+                # # Prevent division by zero
+                if min(r, k) == 1:
+                    V = 0  # Cramer's V is undefined for 1x2 or 2x1 tables
+                else:
+                    chi2_stat = statistic
+                    V = np.sqrt(statistic / (n * (min(r, k) - 1)))
+                    effect_size["label"] = "Cramer's V"
+                    effect_size["value"] = V.round(3)
+                # # Store the effect size
+                # effect_size = {"label": "Cramer's V", "value": V}
+                # print(f"Chi-square statistic: {chi2_stat:.3f}")
+                # print(f"Cramer's V: {V:.3f}")
+                
+#MAHA#          #perform post-hoc test after chi-squared test if p-value is significant
+                if p_value < alpha:
+                    print("Post-hoc test is needed.")
+                    # Use pairwise comparisons with Bonferroni correction
+                    chi2_results = pg.pairwise_chi2(data=df, x='group', y='value')
+                    print(chi2_results)
+                else:
+                    print("No significant differences found.")
+                    
     #### Print Output ####
     print_title(test_name)
     if line1 != "":
@@ -417,8 +519,9 @@ def compare_ind(
         print("There is no significant difference between groups.")
 
     # Print effect size
-    # if len(effect_size) > 0:
-    #     print("Effect size (" + effect_size["label"] + "):", effect_size["value"])
+    if len(effect_size) > 0:
+        print("Effect size (" + effect_size["label"] + "):", effect_size["value"])
+
 
 
 # Compare series/columns for independent groups
@@ -559,28 +662,74 @@ def compare_dep(
             statistic = round(statistic, 3)
             p_value = round(p_value, 3)
 
-            # Compute the effect size (Cohen's d)
-            n = len(groups[0])
-            d = (np.mean(groups[0]) - np.mean(groups[1])) / np.std(
-                groups[0] - groups[1], ddof=1
-            )
+# # Compute the effect size (Cohen's d)
+# n = len(groups[0])
+# d = (np.mean(groups[0]) - np.mean(groups[1])) / np.std(
+#     groups[0] - groups[1], ddof=1
+# )
 
-            effect_size["label"] = "Cohen's d"
-            effect_size["value"] = d
+# effect_size["label"] = "Cohen's d"
+# effect_size["value"] = d
 
-        # If all groups are normally distributed, and we have more than 2 groups/group, use repeated measures ANOVA
-        # elif all_normal and len(groups) > 2:
-        #     test_name = "Repeated Measures ANOVA"
-        #     test_statistic_sign = "F"
-        #     line1 = "Using repeated measures ANOVA because there are more than 2 groups."
+            #MAHA# Compute the effect size for paired t-test (Cohen's d paired)
+            # Compute paired differences
+            differences = group[0] - group[1]
+            # Compute Cohen’s d for paired samples
+            n = len(differences)  # Number of pairs
+            d = np.mean(differences) / np.std(differences, ddof=1)  # Corrected standard deviation
+            effect_size["label"] = "Cohen's d (Paired"
+            effect_size["value"] = d.round(3)
+            #print(f"Cohen's d (Paired): {d:.3f}")
+            
+        # If all groups are normally distributed, and we have more than 2 groups, use repeated measures ANOVA
+        elif all_normal and len(groups) > 2:
+            test_name = "Repeated Measures ANOVA"
+            test_statistic_sign = "F"
+            line1 = "Using repeated measures ANOVA because there are more than 2 groups."
 
-        #     # Use repeated measures ANOVA to compare all group
-        #     statistic, p_value = stats.f_oneway(*groups)
-        #     statistic = round(statistic, 3)
-        #     p_value = round(p_value
+            #MAHA#    # Use repeated measures ANOVA to compare all group 
+            # Prepare the data for repeated measures ANOVA
+            data = pd.DataFrame({
+                "Score": np.concatenate(groups),
+                "Condition": np.repeat(group_labels, [len(group) for group in groups]),
+                "Subject": np.tile(np.arange(len(groups[0])), len(groups))
+            })
+            anova_results = pg.rm_anova(dv="Score", within="Condition", subject="Subject", data=data) #score=col values, condition=time points, subject=group
 
-        # If all group are not normally distributed, use Wilcoxon signed-rank test
-        elif not all_normal:
+            # Extract F-statistic and p-value
+            statistic, p_value = anova_results.loc[0, ["F", "p-unc"]]
+
+            # Round results
+            statistic, p_value = round(statistic, 3), round(p_value, 3)
+
+            # Print results
+            print(f"Repeated Measures ANOVA: F = {statistic}, p = {p_value}")
+
+            # Compute the effect size for Repeated Measures ANOVA (Partial Eta Squared (ηp²))
+            # Compute Grand Mean
+            grand_mean = data["Score"].mean()
+
+            # Compute SS_between
+            group_means = data.groupby("Condition")["Score"].mean()
+            group_sizes = data["Condition"].value_counts()
+            SS_between = sum(group_sizes[group] * (group_means[group] - grand_mean) ** 2 for group in group_means.index)
+
+            # Compute SS_within
+            SS_within = sum((data[data["Condition"] == group]["Score"] - group_means[group]) ** 2 for group in group_means.index)
+
+            # Compute Partial Eta Squared (ηp²)
+            eta_squared = SS_between / (SS_between + SS_within)
+            effect_size["label"] = "Partial Eta Squared (ηp²)"
+            effect_size["value"] = eta_squared.round(3)
+
+            # print(f"Partial Eta Squared (ηp²): {eta_squared:.3f}")
+            
+#statistic, p_value = stats.f_#####oneway#######(*groups)
+#     statistic = round(statistic, 3)
+#     p_value = round(p_value)
+# If all group are not normally distributed, use Wilcoxon signed-rank test
+        
+        elif not all_normal and len(groups) == 2:
             test_name = "Wilcoxon signed-rank test"
             test_statistic_sign = "Statistic"
             line1 = "Not all data is normally distributed."
@@ -590,12 +739,61 @@ def compare_dep(
             p_value = round(p_value, 3)
             statistic = round(statistic, 3)
 
-            # Compute the effect size (r)
-            n = len(groups[0])
-            r = statistic / (n * (n + 1) / 2)
+            #MAHA# # Compute the effect size for Wilcoxon signed-rank (r)
+            # Compute Z-score (Scipy doesn't return it directly, so we approximate)
+            n = len(groups[0])  # Number of pairs
+            z_score = statistic - (n * (n + 1) / 4)  # Approximate Z-score correction
+            z_score /= np.sqrt(n * (n + 1) * (2 * n + 1) / 24)  # Standard error
 
+            # Compute effect size r
+            r = z_score / np.sqrt(n)
+
+            # # Store the effect size
+            # effect_size = {"label": "r", "value": round(r, 3)}
+
+            # Print results
             effect_size["label"] = "r"
-            effect_size["value"] = r
+            effect_size["value"] = r.round(3)
+            # print(f"Wilcoxon Statistic: {statistic}")
+            # print(f"Z-score Approximation: {z_score:.3f}")
+            # print(f"Effect Size (r): {r:.3f}")
+
+# # Compute the effect size (r)
+# n = len(groups[0])
+# r = statistic / (n * (n + 1) / 2)
+# effect_size["label"] = "r"
+# effect_size["value"] = r
+
+#MAHA#   # If all group are not normally distributed, and we have more than 2 groups, use Friedman test
+        elif not all_normal and len(groups) > 2:
+            test_name = "Friedman test"
+            test_statistic_sign = "Statistic"
+            line1 = "Not all data is normally distributed."
+
+            # Use Friedman test to compare all group
+            statistic, p_value = stats.friedmanchisquare(*groups)
+            statistic = round(statistic, 3)
+            p_value = round(p_value, 3)
+
+#MAHA#  # Compute the effect size for Friedman test (Kendall's W)
+            # # Compute Kendall's W
+            # n = len(groups[0])  # Number of subjects
+            # k = len(groups)  # Number of groups
+            # W = 12 / (n * (n + 1)) * sum(rankdata(-group) for group in groups) - 3 * n * (k + 1)
+            # W /= (n * (n ** 2 - 1) - (k + 1) * (2 * n - 1) * (n + 1))
+            # effect_size["label"] = "Kendall's W"
+            # effect_size["value"] = W.round(3)
+
+#MAHA            # perform post hoc test after Friedman test if p-value is significant
+            # Use Nemenyi post-hoc test for post-hoc analysis
+            # if p_value < alpha:
+            #    print("Post-hoc test is needed.")
+            #   # Use Nemenyi post-hoc test for post-hoc analysis
+            #   nemenyi_results = sp.posthoc_nemenyi_friedman(groups)
+            #  print(nemenyi_results)
+            # else:
+            #   print("No significant differences found.")    
+       
 
     #### IF DATA IS CATEGORICAL ####
     if not continuous:
@@ -646,7 +844,9 @@ def compare_dep(
             test_statistic_sign = "Chi2"
 
             statistic = round(statistic, 3)
-            p_value = round(p_value, 3)
+            p_value = round(p_value, 3) 
+
+            #compute the effect size 
 
         else:
             print("Chi-squared assumptions are not met")
@@ -662,6 +862,8 @@ def compare_dep(
                 test_name = "Fisher's exact test"
                 test_statistic_sign = "Odd's ratio"
 
+                #compute the effect size 
+
             else:
                 print(
                     "The contingency table is not 2x2. Cannot perform Fisher's exact test"
@@ -673,6 +875,11 @@ def compare_dep(
 
                 statistic = round(statistic, 3)
                 p_value = round(p_value, 3)
+
+                #compute the effect size 
+
+# ✅ Use McNemar’s test + OR/Cohen’s g for 2x2 tables.
+# ✅ Use Cochran’s Q + Kendall’s W for 3+ groups.                
 
     #### Print Output ####
     print_title(test_name)
@@ -691,5 +898,5 @@ def compare_dep(
         print("There is no significant difference between groups.")
 
     # Print effect size
-    # if len(effect_size) > 0:
-    #     print("Effect size (" + effect_size["label"] + "):", effect_size["value"])
+    if len(effect_size) > 0:
+        print("Effect size (" + effect_size["label"] + "):", effect_size["value"])
