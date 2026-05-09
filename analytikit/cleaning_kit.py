@@ -17,7 +17,7 @@ def version():
     """
     Returns the version of the package
     """
-    return "1.0.0"
+    return "1.1.2"
 
 
 # Drop columns more conveniently

@@ -7,4 +7,5 @@ analytikit/stat_kit.py
 analytikit.egg-info/PKG-INFO
 analytikit.egg-info/SOURCES.txt
 analytikit.egg-info/dependency_links.txt
+analytikit.egg-info/requires.txt
 analytikit.egg-info/top_level.txt

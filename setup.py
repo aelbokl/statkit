@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='analytikit',
-    version='0.1.0',
+    version='1.1.2',
     author='Ahmed Elbokl and Maha Sabry',
     author_email='ahmed.elbokl@med.asu.edu.eg',
     description='A collection of helper functions for data cleaning, statistics and analysis',

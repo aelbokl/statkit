@@ -32,7 +32,7 @@ Data cleaning and reporting helpers, including:
 - `print_missing` to report missing counts and percentages.
 - `suggest_deidentification` to flag columns that may contain identifiers.
 
-`cleaning_kit.version()` currently returns `1.0.0`.
+`cleaning_kit.version()` currently returns `1.1.2`.
 
 ### `helpers`
 
@@ -188,13 +188,11 @@ from analytikit import cleaning_kit
 
 ## Version note
 
-There is currently a version difference between module and distribution metadata:
+The package metadata and module version helpers are aligned at `1.1.2`:
 
 - `stat_kit.version()` returns `1.1.2`
-- `cleaning_kit.version()` returns `1.0.0`
-- `setup.py` declares the package version as `0.1.0`
-
-If you want PyPI or GitHub release metadata to match the module versions, update `setup.py` before publishing a tagged release.
+- `cleaning_kit.version()` returns `1.1.2`
+- `setup.py` declares the package version as `1.1.2`
 
 ## Smoke test
 
