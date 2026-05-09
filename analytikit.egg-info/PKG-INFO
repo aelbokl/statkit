@@ -1,0 +1,112 @@
+Metadata-Version: 2.4
+Name: analytikit
+Version: 0.1.0
+Summary: A collection of helper functions for data cleaning, statistics and analysis
+Home-page: 
+Author: Ahmed Elbokl and Maha Sabry
+Author-email: ahmed.elbokl@med.asu.edu.eg
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: requires-python
+Dynamic: summary
+
+# analytikit
+
+analytikit is a small collection of helper utilities for data cleaning, exploratory display and common statistical tests in Python.
+
+Key ideas:
+
+- Lightweight wrappers around pandas / scipy / statsmodels / pingouin to simplify common workflows.
+- Quick printing helpers for descriptive statistics and missingness.
+- Convenience functions for choosing appropriate tests and computing confidence intervals.
+
+## Features
+
+- drop_columns: safely drop columns and report missing ones.
+- lookup_columns: find column names by substring.
+- print_mean_std / print_median_iqr / print_missing: concise printed summaries.
+- compare_ind / compare_dep: high-level routines to compare independent or dependent groups (chooses tests, prints results, optional post-hoc).
+- correlate: automatic Pearson/Spearman selection and return object of results.
+- compute_confidence_interval_difference: parametric and bootstrap CIs for differences.
+
+## Installation
+
+From the package root (editable install, recommended while developing):
+
+```bash
+pip install -e .
+```
+
+Dependencies (non-exhaustive): pandas, numpy, scipy, seaborn, matplotlib, statsmodels, pingouin, scikit-posthocs.
+Check `setup.py` for pinned metadata and the complete dependency list.
+
+## Quick examples
+
+Open a Python REPL or script and try:
+
+```python
+import pandas as pd
+from analytikit import stat_kit, cleaning_kit
+
+# sample data
+df = pd.DataFrame({
+	'group': ['A'] * 5 + ['B'] * 5,
+	'score': [1,2,3,4,5,2,3,2,4,5],
+	'age': [21,22,23,21,24,33,34,32,31,30]
+})
+
+# drop columns (safe)
+cleaning_kit.drop_columns(df, ['non_existing_col', 'age'])
+
+# lookup columns
+print(cleaning_kit.lookup_columns('score', df))
+
+# descriptive
+stat_kit.print_mean_std('Age', df['age'])
+stat_kit.print_missing(df['score'])
+
+# compare two independent groups (example)
+gA = df[df['group'] == 'A']['score']
+gB = df[df['group'] == 'B']['score']
+stat_kit.compare_ind([gA, gB], group_labels=['A','B'])
+
+# correlation
+res = stat_kit.correlate(df, 'age', 'score')
+print(res)
+
+# confidence-interval difference (means, independent)
+ci = stat_kit.compute_confidence_interval_difference(gA, gB, method='mean', paired=False)
+print(ci)
+```
+
+## Testing / smoke test
+
+There are no formal unit tests in this repository by default. To smoke-test the package after installation run the small script above or create a quick file `smoke.py` with the sample code and run:
+
+```bash
+python smoke.py
+```
+
+## Contributing
+
+Contributions welcome. If you add features, please:
+
+- add unit tests where appropriate,
+- update the README with usage notes for new functions,
+- keep the public API stable or document breaking changes.
+
+## Authors
+
+Ahmed Elbokl (ahmed.elbokl@med.asu.edu.eg) and contributors.
+
+## License
+
+See `setup.py` for package metadata including license information or contact the author if unsure.
