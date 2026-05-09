@@ -60,6 +60,12 @@ Or install dependencies first:
 pip install -r requirements.txt
 ```
 
+To build a source distribution or wheel with modern tooling:
+
+```bash
+python -m build
+```
+
 ## Dependencies
 
 Runtime dependencies currently declared in `setup.py`:
@@ -199,7 +205,7 @@ The package metadata and module version helpers are aligned at `1.1.2`:
 After installation, run a quick import check:
 
 ```bash
-python -c "import analytikit; from analytikit import stat_kit, cleaning_kit; print(analytikit.version(), cleaning_kit.version())"
+python smoke_test.py
 ```
 
 ## Contributing
