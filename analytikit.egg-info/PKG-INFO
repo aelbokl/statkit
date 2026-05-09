@@ -2,11 +2,10 @@ Metadata-Version: 2.4
 Name: analytikit
 Version: 1.1.2
 Summary: A collection of helper functions for data cleaning, statistics and analysis
-Home-page: 
-Author: Ahmed Elbokl and Maha Sabry
-Author-email: ahmed.elbokl@med.asu.edu.eg
+Author-email: Ahmed Elbokl and Maha Sabry <ahmed.elbokl@med.asu.edu.eg>
+License: MIT
+Project-URL: Homepage, https://github.com/aelbokl/statkit
 Classifier: Programming Language :: Python :: 3
-Classifier: License :: OSI Approved :: MIT License
 Classifier: Operating System :: OS Independent
 Requires-Python: >=3.6
 Description-Content-Type: text/markdown
@@ -18,14 +17,6 @@ Requires-Dist: statsmodels
 Requires-Dist: scikit-posthocs
 Requires-Dist: seaborn
 Requires-Dist: matplotlib
-Dynamic: author
-Dynamic: author-email
-Dynamic: classifier
-Dynamic: description
-Dynamic: description-content-type
-Dynamic: requires-dist
-Dynamic: requires-python
-Dynamic: summary
 
 # analytikit
 
@@ -89,9 +80,15 @@ Or install dependencies first:
 pip install -r requirements.txt
 ```
 
+To build a source distribution or wheel with modern tooling:
+
+```bash
+python -m build
+```
+
 ## Dependencies
 
-Runtime dependencies currently declared in `setup.py`:
+Runtime dependencies are declared in `pyproject.toml`:
 
 - pandas
 - numpy
@@ -221,14 +218,14 @@ The package metadata and module version helpers are aligned at `1.1.2`:
 
 - `stat_kit.version()` returns `1.1.2`
 - `cleaning_kit.version()` returns `1.1.2`
-- `setup.py` declares the package version as `1.1.2`
+- `pyproject.toml` declares the package version as `1.1.2`
 
 ## Smoke test
 
 After installation, run a quick import check:
 
 ```bash
-python -c "import analytikit; from analytikit import stat_kit, cleaning_kit; print(analytikit.version(), cleaning_kit.version())"
+python smoke_test.py
 ```
 
 ## Contributing
@@ -245,4 +242,4 @@ Ahmed Elbokl (ahmed.elbokl@med.asu.edu.eg) and contributors.
 
 ## License
 
-See `setup.py` for package metadata including license information.
+See `pyproject.toml` for package metadata including license information.

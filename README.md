@@ -68,7 +68,7 @@ python -m build
 
 ## Dependencies
 
-Runtime dependencies currently declared in `setup.py`:
+Runtime dependencies are declared in `pyproject.toml`:
 
 - pandas
 - numpy
@@ -198,7 +198,7 @@ The package metadata and module version helpers are aligned at `1.1.2`:
 
 - `stat_kit.version()` returns `1.1.2`
 - `cleaning_kit.version()` returns `1.1.2`
-- `setup.py` declares the package version as `1.1.2`
+- `pyproject.toml` declares the package version as `1.1.2`
 
 ## Smoke test
 
@@ -222,4 +222,4 @@ Ahmed Elbokl (ahmed.elbokl@med.asu.edu.eg) and contributors.
 
 ## License
 
-See `setup.py` for package metadata including license information.
+See `pyproject.toml` for package metadata including license information.

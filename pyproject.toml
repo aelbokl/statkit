@@ -1,3 +1,34 @@
 [build-system]
 requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "analytikit"
+version = "1.1.2"
+description = "A collection of helper functions for data cleaning, statistics and analysis"
+readme = "README.md"
+requires-python = ">=3.6"
+authors = [
+	{ name = "Ahmed Elbokl and Maha Sabry", email = "ahmed.elbokl@med.asu.edu.eg" },
+]
+license = { text = "MIT" }
+dependencies = [
+	"pandas",
+	"numpy",
+	"scipy",
+	"pingouin",
+	"statsmodels",
+	"scikit-posthocs",
+	"seaborn",
+	"matplotlib",
+]
+classifiers = [
+	"Programming Language :: Python :: 3",
+	"Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/aelbokl/statkit"
+
+[tool.setuptools.packages.find]
+include = ["analytikit*"]
