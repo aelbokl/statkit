@@ -16,6 +16,7 @@ from .helpers import (
 	print_mean_std,
 	print_median_iqr,
 )
+from . import cleaning_kit
 
 __all__ = [
 	"version",
@@ -32,4 +33,5 @@ __all__ = [
 	"median_ci",
 	"print_mean_std",
 	"print_median_iqr",
+	"cleaning_kit",
 ]
